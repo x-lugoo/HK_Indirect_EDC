@@ -1288,7 +1288,7 @@ int SetStdDE55(uchar bForUpLoad, DE55Tag *pstList, uchar *psOutData, int *piOutL
 			RemoveFromTagList(astLocalTaglist, 0x57);
 			RemoveFromTagList(astLocalTaglist, 0x9B);
 			RemoveFromTagList(astLocalTaglist, 0x5F34);
-			//RemoveFromTagList(astLocalTaglist, 0x9F08);
+			RemoveFromTagList(astLocalTaglist, 0x9F08);
 		}
 		//-----------------------------------------------------------
 		// Generate data by tag list

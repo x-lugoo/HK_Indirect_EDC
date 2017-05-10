@@ -344,10 +344,20 @@ void SetCommReqField(void)
         {
             if( glProcInfo.stTranLog.ucTranType!=SETTLEMENT )
             {
-                if( glProcInfo.stTranLog.bPanSeqOK )
+                if( glProcInfo.stTranLog.bPanSeqOK )   //fixed by jeff_20170503 for dsbank
                 {
-                    //sprintf((char *)glSendPack.szPanSeqNo, "%0*X", LEN_PAN_SEQ_NO, glProcInfo.stTranLog.ucPanSeqNo);
-					 //sprintf((char *)glSendPack.szPanSeqNo, "%0*X", LEN_PAN_SEQ_NO, 1);
+					if(ChkIfCupDsb())
+					{
+						if(glProcInfo.stTranLog.ucPanSeqNo != 0)
+						{
+							sprintf((char *)glSendPack.szPanSeqNo, "%0*X", LEN_PAN_SEQ_NO, glProcInfo.stTranLog.ucPanSeqNo);
+						}
+					}
+					else
+					{
+						sprintf((char *)glSendPack.szPanSeqNo, "%0*X", LEN_PAN_SEQ_NO, glProcInfo.stTranLog.ucPanSeqNo);
+					}
+					
                 }
             }
         }
@@ -558,7 +568,11 @@ void SetCommReqField(void)
 		PubLong2Char((ulong)glProcInfo.stTranLog.uiIccDataLen, 2, glSendPack.sICCData);
 		memcpy(&glSendPack.sICCData[2], glProcInfo.stTranLog.sIccData, glProcInfo.stTranLog.uiIccDataLen);
 	}
-	PubDebugTx("glProcInfo.stTranLog.ucTranType=%d",glProcInfo.stTranLog.ucTranType);
+#ifdef APP_DEBUG_RICHARD
+	PubDebugTx("glProcInfo.stTranLog.ucTranType=%d",
+		glProcInfo.stTranLog.ucTranType);
+#endif
+
 #ifdef ENABLE_EMV
     if(ChkIfIndirectCupAcq() && (glProcInfo.stTranLog.uiEntryMode & MODE_CHIP_INPUT) //fixed by jeff_xiehuan20170427
 		&&(glProcInfo.stTranLog.ucTranType != VOID)
@@ -569,7 +583,7 @@ void SetCommReqField(void)
         PubLong2Char((ulong)glProcInfo.stTranLog.uiField56Len, 2, glSendPack.sICCData2);
         memcpy(&glSendPack.sICCData2[2], glProcInfo.stTranLog.sField56, glProcInfo.stTranLog.uiField56Len);
     }
-	if(ChkIfIndirectCupAcq() && (  (glProcInfo.stTranLog.ucTranType == VOID) || (glProcInfo.stTranLog.ucTranType == OFFLINE_SEND)  ) )//  && glProcInfo.stTranLog.ucTranType == OfflineSend)
+	if(ChkIfIndirectCupAcq() && (glProcInfo.stTranLog.ucTranType == VOID) )//  && glProcInfo.stTranLog.ucTranType == OfflineSend)
 	{
 #ifdef APP_DEBUG_RICHARD
 	PubDebugTx("glProcInfo.stTranLog.uiIccDataLen=%d,glProcInfo.stTranLog.uiField56Len=%d",
