@@ -163,7 +163,11 @@ uchar ChkIfCupWlb(void);
 uchar ChkIfCupFubon(void);
 uchar ChkIfIndirectCupAcq(void);
 
+
 uchar ChkAnyIndirectCupAcq(void); //addec by jeff_xiehuan20170401
+uchar ChkIfCUP(void);
+uchar ChkIfDsb(void);
+uchar ChkIfChb(void);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

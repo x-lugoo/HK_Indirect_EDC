@@ -244,6 +244,7 @@ void SetCommReqField(void)
         {
             sprintf((char *)glSendPack.szRspCode,  "%.2s",  glProcInfo.stTranLog.szRspCode);
         }
+
     }
     else if( glProcInfo.stTranLog.ucTranType==VOID )
     {
@@ -444,7 +445,7 @@ void SetCommReqField(void)
 	}
 
 	
-    if( glProcInfo.stTranLog.uiEntryMode & MODE_PIN_INPUT )
+   if( glProcInfo.stTranLog.uiEntryMode & MODE_PIN_INPUT )
     {
         PubLong2Char((ulong)LEN_PIN_DATA, 2, glSendPack.sPINData);
         memcpy(&glSendPack.sPINData[2], glProcInfo.sPinBlock, LEN_PIN_DATA);
@@ -844,7 +845,11 @@ void ModifyProcessCode(void)
             }
         }
     }
-
+	if((ChkIfDsb() || ChkIfCupDsb()) && glProcInfo.stTranLog.ucTranType == OFFLINE_SEND)//dashing bank process code 200000
+	{
+		 glSendPack.szProcCode[0] = '2';
+         glSendPack.szProcCode[1] = '0';
+	}
     PubStrUpper(glSendPack.szProcCode);
 }
 
@@ -948,6 +953,7 @@ void SetIndirectCUPEntryMode(TRAN_LOG *pstLog)
 	{
 		i = 1;
 	}
+	   //added by jeff_xiehuan20170420
     if(pstLog->uiEntryMode & MODE_FALLBACK_SWIPE)
     {
         glSendPack.szEntryMode[0 + i] = '9'; 
@@ -2386,6 +2392,13 @@ int OfflineSend(uchar ucTypeFlag)
                     }
                 }
             }
+			if(ChkAnyIndirectCupAcq())//indirect need to send bit39 for offline send
+			{
+				sprintf((char *)glSendPack.szRspCode,  "%.2s","00");
+	#ifdef APP_DEBUG_RICHARD
+		PubDebugTx("offline send rspCode=%02X,%02X",glSendPack.szRspCode[0],glSendPack.szRspCode[1]);
+	#endif
+			}
         }
         if( ChkAcqOption(ACQ_DBS_FEATURE) )
         {// 香港星展银行,sale_complete上送时, VISA/MASTER需要上送 BIT37 BIT39
@@ -4633,10 +4646,10 @@ int TransUpLoad(void)
         {
             PPDCC_PackField63(UPLOAD, &glSendPack); // HJJ add 20110928
         }
-        if (ChkCurAcqName("DSB",FALSE))
-        {
-            DAHSING_setInstalmentField63(&glSendPack,&stLog);
-        }
+       // if (ChkCurAcqName("DSB",FALSE))//deleted by jeff_xiehuan20170703
+       // {
+           //DAHSING_setInstalmentField63(&glSendPack,&stLog);
+      //  }
         iRet = SendRecvPacket();
         if( iRet!=0 )
         {

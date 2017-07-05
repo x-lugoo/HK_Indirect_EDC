@@ -275,6 +275,8 @@ int TmkDownload(void)
     ScrCls();
     PubDispString(_T("TMK DOWNLOAD"), 0 | DISP_LINE_LEFT | DISP_LINE_REVER);
 
+
+
     for (i = 0; i < 16; i++)  //generating random data
     {
         szBuff[i] = (uchar)rand();    
@@ -405,8 +407,56 @@ int TmkActivation(void)
 void KeyDownload(void)
 {
     int iRet; 
+	uchar ucIndex = 0;
 
     memcpy(&glCurAcq, &glSysParam.stAcqList[1], sizeof(ACQUIRER));  //set the default  Acq by richard 20170223
+	if(ChkIfCUP()) //when downloading key,select cup acquier
+	{
+		for(ucIndex=0; ucIndex<glSysParam.ucAcqNum; ucIndex++)
+		{
+			SetCurAcq(ucIndex);
+			if(ChkCurAcqName("CUP", FALSE))
+			{
+				break;
+			}
+		}
+	}
+#if 1   //only for test fubon bank,write a fixed TMK for temporary test.
+#ifdef APP_DEBUG_RICHARD //added by jeff_xiehuan20170322
+	PubDebugTx("Only for test fubon bank,write TMK,func:%s,LineNo:%d,ExistFubon flag=%d",__FUNCTION__, __LINE__,ChkIfCupFubon());
+#endif
+	if(ChkIfCupFubon())
+	{
+		ST_KEY_INFO KeyInfoIn = {0};
+		ST_KCV_INFO KcvInfoIn = {0};
+
+		PedErase();
+        KeyInfoIn.ucSrcKeyType = PED_TMK;
+        KeyInfoIn.ucSrcKeyIdx  = 0;
+        KeyInfoIn.ucDstKeyType = PED_TMK;
+        KeyInfoIn.ucDstKeyIdx  = CUP_TMK_ID;
+        KeyInfoIn.iDstKeyLen  = 16;
+		strcpy(KeyInfoIn.aucDstKeyValue,"\xFB\xAE\xDC\xD9\x0B\xCE\xC4\x0E\x5B\xE9\xA8\x75\x73\x67\xC1\x1A");
+        KcvInfoIn.iCheckMode = 0x00;
+
+        iRet = PedWriteKey(&KeyInfoIn, &KcvInfoIn);
+		if(0 == iRet)
+		{
+			PubBeepOk();
+			ScrClrLine(2, 7);
+			PubDispString(_T("WRITE TMK SUCCESS"), 3 | DISP_LINE_CENTER);
+			PubWaitKey(3);
+		}
+		else
+		{
+			ScrClrLine(2, 7);
+            PubDispString(_T("WRITE TMK FAIL"), 3 | DISP_LINE_CENTER);
+            PubWaitKey(3);
+		}
+        return ;
+	}
+
+#endif 
 
     iRet = RsaKeyDownload();
     if(iRet !=0)
@@ -445,12 +495,23 @@ void KeyDownload(void)
 
 void TerminalSignOn(void)
 {
-    int iRet; 
+    int iRet;
+	uchar ucIndex = 0;
     ST_KEY_INFO KeyInfoIn = {0};
     ST_KCV_INFO KcvInfoIn = {0};
 
     memcpy(&glCurAcq, &glSysParam.stAcqList[1], sizeof(ACQUIRER));  //set the default  Acq by richard 20170223
-
+	if(ChkIfCUP()) //when downloading key,select cup acquier
+	{
+		for(ucIndex=0; ucIndex<glSysParam.ucAcqNum; ucIndex++)
+		{
+			SetCurAcq(ucIndex);
+			if(ChkCurAcqName("CUP", FALSE))
+			{
+				break;
+			}
+		}
+	}
     iRet = TransInit(LOGON);
     if( iRet!=0 )
     {

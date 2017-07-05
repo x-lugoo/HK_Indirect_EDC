@@ -1,6 +1,6 @@
 
 #include "global.h"
-
+#include "util.h"
 /********************** Internal macros declaration ************************/
 /********************** Internal structure declaration *********************/
 /********************** Internal functions declaration *********************/
@@ -212,8 +212,7 @@ int ProcMagMsg(void)
 #endif
 		EcrSendTranFail();//2014-5-13 tt enhance
 		return iRet;
-	}
-
+	}   
 	iRet = TransCapture();
 	if( iRet!=0 )
 	{
@@ -244,7 +243,6 @@ int ProcICCMsg(void)
 		 EcrSendTranFail();//2014-5-13 tt enhance
 		return iRet;
 	}
-
 	iRet = TransCapture();
 	if( iRet!=0 )
 	{

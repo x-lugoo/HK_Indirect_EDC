@@ -1041,32 +1041,45 @@ int ChkIfIssuerVMJ(void)
 //Dahsing Bank
 uchar ChkIfCupDsb(void)
 {
-	return (ChkCurAcqName("CUP_DSB", TRUE));
+	return (ChkCurAcqName("CUP_DSB", TRUE) ||ChkCurAcqName("UPI_DSB", TRUE));
+}
+
+uchar ChkIfDsb(void)
+{
+	return (ChkCurAcqName("DSB", TRUE));
 }
 
 //ChongHing Bank
 uchar ChkIfCupChb(void)
 {
-	return (ChkCurAcqName("CUP_CHB", TRUE));
+	return (ChkCurAcqName("CUP_CHB", TRUE) || ChkCurAcqName("UPI_CHB", TRUE));
+}
+
+uchar ChkIfChb(void)
+{
+	return (ChkCurAcqName("CHB", TRUE));
 }
 
 //WingLung Bank
 uchar ChkIfCupWlb(void)
 {
-	return (ChkCurAcqName("CUP_WLB", TRUE));
+	return (ChkCurAcqName("CUP_WLB", TRUE) || ChkCurAcqName("UPI_WLB", TRUE));
 }
 
 //FuBon Bank
 uchar ChkIfCupFubon(void)
 {
-	return (ChkCurAcqName("CUP_FUBON", TRUE));
+	return (ChkCurAcqName("CUP_FUBON", TRUE) || ChkCurAcqName("UPI_FUBON", TRUE));
 }
-
-
+//BEA bank
+uchar ChkIfCupBea(void)
+{
+	return (ChkCurAcqName("CUP_BEA", TRUE) || ChkCurAcqName("UPI_BEA", TRUE));
+}
 
 uchar ChkIfIndirectCupAcq(void)
 {
-	return (ChkIfCupDsb() ||ChkIfCupChb() || ChkIfCupWlb()|| ChkIfCupFubon());
+	return (ChkIfCupDsb() ||ChkIfCupChb() || ChkIfCupWlb()|| ChkIfCupFubon() || ChkIfCupBea());
 }
 
 //check if exist IndrectCupAcp anywhere in EDC
@@ -1089,6 +1102,25 @@ uchar ChkAnyIndirectCupAcq(void)
     return FALSE;
 }
 
+
+uchar ChkIfCUP(void)
+{
+    int i;
+    ACQUIRER    stBakAcq = glCurAcq;
+
+    for ( i= 0; i < glSysParam.ucAcqNum; i++)
+    {
+        SetCurAcq((uchar)i);
+        if (ChkCurAcqName("CUP",FALSE))
+        {
+            glCurAcq = stBakAcq;
+            return TRUE;
+        }
+    }
+
+    glCurAcq = stBakAcq;
+    return FALSE;
+}
 uchar ChkExistAcq(uchar *acqName)
 {
     uchar ucCounter;
@@ -1104,6 +1136,11 @@ uchar ChkExistAcq(uchar *acqName)
     return FALSE;
 }
 //---------------add by richard 20161110 for indirect CUP Acq-----------end
+
+
+
+
+
 
 // end of file
 

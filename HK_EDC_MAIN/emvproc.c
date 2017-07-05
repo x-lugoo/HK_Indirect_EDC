@@ -336,12 +336,13 @@ int cEMVGetHolderPwd(int iTryFlag, int iRemainCnt, uchar *pszPlainPin)
     uchar	sTmpMKey[8], sTmpEncWKey[8], sTmpPlainWKey[8];
 #endif
 
-#ifdef APP_DEBUG_RICHARD
-	PubDebugTx("FILE_%s,func:%s,LineNo:%d,%s",__FILE__,__FUNCTION__, __LINE__,"jeff");
-#endif
+
 	// 联机PIN处理
 	if( pszPlainPin==NULL )
 	{
+#ifdef APP_DEBUG_RICHARD
+	PubDebugTx("FILE_%s,func:%s,LineNo:%d,%s",__FILE__,__FUNCTION__, __LINE__,"Debug online pin");
+#endif
 		iResult = GetPIN(GETPIN_EMV);
 		if( iResult==0 )
 		{
@@ -366,7 +367,9 @@ int cEMVGetHolderPwd(int iTryFlag, int iRemainCnt, uchar *pszPlainPin)
 
 	// 脱机pin处理(明文/密文)
 	// Offline plain/enciphered PIN processing below
-
+#ifdef APP_DEBUG_RICHARD
+	PubDebugTx("FILE_%s,func:%s,LineNo:%d,%s",__FILE__,__FUNCTION__, __LINE__,"Debug Offline PIN");
+#endif
 	ScrClrLine(2, 7);
 	if( iRemainCnt==1 )
 	{
@@ -848,8 +851,16 @@ int FinishEmvTran(void)
 	// decide whether need force online
 	EMVGetParameter(&glEmvParam);
 	glEmvParam.ForceOnline = (glProcInfo.stTranLog.ucTranType!=SALE ? 1 : 0);
-	EMVSetParameter(&glEmvParam);
+	
 
+	if(ChkAnyIndirectCupAcq()  && strstr(glCurIssuer.szName,"CUP"))
+	{
+		memcpy(glEmvParam.Capability,EMV_CUP_CAPABILITY, 3);
+#ifdef APP_DEBUG_RICHARD //added by jeff_xiehuan20170322
+	PubDebugTx("func:%s,LineNo:%d,%s",__FUNCTION__, __LINE__,"Entry EMV_CUP_ONLINE_PIN");
+#endif
+	}
+	EMVSetParameter(&glEmvParam);
 	// clear last EMV status
 	memset(&glEmvStatus, 0, sizeof(EMV_STATUS));
 	SaveEmvStatus();

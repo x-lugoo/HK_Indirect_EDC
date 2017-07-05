@@ -88,7 +88,7 @@ Application attribute 应用属性(名称, ID, 版本)
 #else
 #define EDC_VER_PUB		"1.00"			// 公共版本号. Public version number
                          //2016-2-5 AMEX Express
-#define EDC_VER_INTERN	"1.00.0219"	// 扩展版本号(前部分应和公共版本号一致). Extend version number. should be same as EDC_VER_INTERN's heading.
+#define EDC_VER_INTERN	"1.00.0222C"	// 扩展版本号(前部分应和公共版本号一致). Extend version number. should be same as EDC_VER_INTERN's heading.
 
 /*----------2015-11-17 KMS START-----------*/ //Gillian 20160923
 #define KMSCFG  				"KMSCFG.INI" 
@@ -119,6 +119,7 @@ Features of specific area 地区专有属性
 /*********************************************************************************
 EMV terminal capability EMV终端能力配置
 *********************************************************************************/
+#define EMV_CUP_CAPABILITY  "\xE0\xF0\xC8"  //added only for indirect cup card
 #define EMV_CAPABILITY		"\xE0\xB0\xC8"
 #define EMV_AECAPABILITY	"\xE0\xB8\xC8"
 //	9F33 - Terminal Capabilities Length = 03

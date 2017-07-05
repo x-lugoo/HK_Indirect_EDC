@@ -1774,7 +1774,7 @@ int PrintReceipt_T(uchar ucPrnFlag)
 		if( ucNum==0 )
 		{
 			PrnStr(_T("  **** MERCHANT COPY ****  "));
-
+#if 0 //added by jeff_xiehuan
 #ifdef EMV_DEBUG
 			//if( (glProcInfo.stTranLog.uiEntryMode & MODE_CHIP_INPUT) ||
 			//(glProcInfo.stTranLog.uiEntryMode & MODE_FALLBACK_SWIPE) )
@@ -1797,7 +1797,7 @@ int PrintReceipt_T(uchar ucPrnFlag)
 				PubDebugOutput(" \nCVR", glCVR, iLengthCVR, DEVICE_COM1, HEX_MODE); //Gillian emv debug
 				PubDebugOutput(" \nCVMR", glCVMR, iLengthCVMR,DEVICE_COM1, HEX_MODE);  //Gillian emv debug
 #endif
-	
+#endif
 		}
 		else if( ucNum==1 )
 		{

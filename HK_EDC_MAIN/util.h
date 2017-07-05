@@ -169,6 +169,7 @@ uchar OffBaseCheckEcr(void);
 uchar FileReadEventMap(void);
 uchar FileWriteEventMapDefault(void);
 void ResetSysParam(uchar bResetAll);
+int AccountSelection(void);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

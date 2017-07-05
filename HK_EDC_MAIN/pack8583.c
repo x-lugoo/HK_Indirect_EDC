@@ -42,26 +42,77 @@ int PubPack8583(FIELD_ATTR *pDataAttr, void *pSt8583, uchar *pusOut, uint *puiOu
     iDataLen    = 0;
     *puiOutLen  = 0;
 
-    if((ChkExistAcq("CUP_DSB") || ChkExistAcq("CUP_CHB"))&& (glProcInfo.stTranLog.ucTranType == LOGON))
+   
+	if(ChkIfIndirectCupAcq())//fixed by xiehuan20170627
     {
-        (pDataAttr+60)->eElementAttr = Attr_n;
-    }
-    else 
-    {
-        (pDataAttr+60)->eElementAttr = Attr_a;
-    }
-	if(ChkIfIndirectCupAcq() && glProcInfo.stTranLog.ucTranType == SETTLEMENT)//added by jeff_xiehuan 20170331
-	{
+		
+		if( ChkIfDsb() || ChkIfCupDsb()) //
+		{
+			if(glProcInfo.stTranLog.ucTranType == UPLOAD)
+			{
+				(pDataAttr+54)->eElementAttr = Attr_UnUsed;
+				(pDataAttr+55)->eElementAttr = Attr_UnUsed;
+				(pDataAttr+56)->eElementAttr = Attr_UnUsed;
+				(pDataAttr+60)->eElementAttr = Attr_UnUsed;
+				(pDataAttr+61)->eElementAttr = Attr_UnUsed;
+				(pDataAttr+62)->eElementAttr = Attr_UnUsed;
+				(pDataAttr+63)->eElementAttr = Attr_UnUsed;
+				(pDataAttr+64)->eElementAttr = Attr_UnUsed;
+		 #ifdef APP_DEBUG_RICHARD
+			PubDebugTx("File_%s,LineNo:%d,Function():%s,remove all field after 42 \n",__FILE__,__LINE__, __FUNCTION__);
+		 #endif
+			}
+			else
+			{
+				(pDataAttr+54)->eElementAttr = Attr_a;
+				(pDataAttr+55)->eElementAttr = Attr_b;
+		#ifdef ENABLE_EMV
+				(pDataAttr+56)->eElementAttr = Attr_b;
+		#else
+				(pDataAttr+56)->eElementAttr = Attr_UnUsed;   
+		#endif
+				(pDataAttr+60)->eElementAttr = Attr_a;
+				(pDataAttr+61)->eElementAttr = Attr_a;
+				(pDataAttr+62)->eElementAttr = Attr_b;
+				(pDataAttr+63)->eElementAttr = Attr_b;
+				(pDataAttr+64)->eElementAttr = Attr_b;
+				if(glProcInfo.stTranLog.ucTranType == LOGON)
+				{
+					(pDataAttr+60)->eElementAttr = Attr_n;
+				}
+				else if(glProcInfo.stTranLog.ucTranType == SETTLEMENT)
+				{
+					(pDataAttr+60)->eElementAttr = Attr_n;
+					(pDataAttr+60)->eLengthAttr = Attr_var2;
+				}
+				else 
+				{
+					(pDataAttr+60)->eElementAttr = Attr_a;
+					(pDataAttr+60)->eLengthAttr = Attr_var2;
+					(pDataAttr+60)->uiLength = 22;
+				}
+			}
+		}
+		else
+		{
+			if(glProcInfo.stTranLog.ucTranType == LOGON)
+			{
+				(pDataAttr+60)->eElementAttr = Attr_n;
+			}
+			else if(glProcInfo.stTranLog.ucTranType == SETTLEMENT)
+			{
+				(pDataAttr+60)->eElementAttr = Attr_n;
+				(pDataAttr+60)->eLengthAttr = Attr_var2;
+			}
+			else 
+			{
+				(pDataAttr+60)->eElementAttr = Attr_a;
+				(pDataAttr+60)->eLengthAttr = Attr_var2;
+				(pDataAttr+60)->uiLength = 22;
+			}
+		}
 
-		(pDataAttr+60)->eElementAttr = Attr_n;
-		/*(pDataAttr+60)->eLengthAttr = Attr_fix;*/
-		(pDataAttr+60)->eLengthAttr = Attr_var2;
-	}
-	else
-	{
-		(pDataAttr+60)->eLengthAttr = Attr_var2;
-		(pDataAttr+60)->uiLength = 22;
-	}
+	}//if(ChkIfIndirectCupAcq())
     iRet = PackElement(pDataAttr, pusI, pusO, (uint *)&iFieldLen);
 
     if( iRet<=0 )
@@ -116,13 +167,6 @@ int PubPack8583(FIELD_ATTR *pDataAttr, void *pSt8583, uchar *pusOut, uint *puiOu
 		}
 #endif
 /*----------------2014-5-20 IP encryption----------------*/
-		//if(ChkIfIndirectCupAcq() && glProcInfo.stTranLog.ucTranType == SETTLEMENT)
-		//{
-		//	if((i + 1 == 60) && (iRet > 0))  //fix F60 length change to variable length to fix length by jeff_xiehuan20170321
-		//	{
-		//		pusI += 11;
-		//	}
-		//}
         if( iRet<0 )
         {
             return ((-1)*(1000+(i+1)));

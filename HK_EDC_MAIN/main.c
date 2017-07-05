@@ -811,7 +811,9 @@ int main_sub(ST_EVENT_MSG *pstEventMsg)
 #endif
 
 	iRet = ERR_NO_DISP;
-
+#ifdef APP_DEBUG_RICHARD
+	PubDebugTx("check glSysParam.stEdcInfo.ucINPUT_ONLY=%d,pstEventMsg->MsgType=%d func:%s,LineNo:%d,",glSysParam.stEdcInfo.ucINPUT_ONLY,pstEventMsg->MsgType,__FUNCTION__,__LINE__);
+#endif
 	if(glSysParam.stEdcInfo.ucINPUT_ONLY==1)//key in only
 	{	
 	

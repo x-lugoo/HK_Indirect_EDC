@@ -957,6 +957,21 @@ void Conv2EngTime(uchar *pszDateTime, uchar *pszEngTime)
             pszDateTime+6, pszDateTime, pszDateTime+8, pszDateTime+10);
 }
 
+uchar CheckIssueForIndirect(uchar *IssueNameOne,uchar *IssueNameTwo)  //added by xiehuan_jeff20170614
+{	
+	uchar ucIndex = 0;
+
+	for(ucIndex=0; ucIndex<glSysParam.ucIssuerNum; ucIndex++)
+	{
+		if(strstr(glSysParam.stIssuerList[ucIndex].szName,IssueNameOne) ||
+			strstr(glSysParam.stIssuerList[ucIndex].szName,IssueNameTwo))
+		{
+			return ucIndex;
+		}
+	}
+	return MAX_ISSUER + 1;
+}
+
 // 检查卡号,并确定收单行/发卡行(必须在读出卡号后调用)
 // Check PAN, and determine Issuer/Acquirer.
 int ValidCard(void)
@@ -1000,9 +1015,128 @@ int ValidCard(void)
     {
         return iRet;
     }
+	CheckCapture();
+#ifdef APP_DEBUG_RICHARD
+	PubDebugTx("glCurAcq.szName=%s: ChkIfCUP()=%d,ChkAnyIndirectCupAcq()=%d,glProcInfo.stTranLog.uiEntryMode=%d,ucTranType=%d,glCurIssuer.szName=%s"             \
+		 "fun:%s,LineNo:%d,",glCurAcq.szName,ChkIfCUP(),ChkAnyIndirectCupAcq(),glProcInfo.stTranLog.uiEntryMode,glProcInfo.stTranLog.ucTranType,glCurIssuer.szName,__FUNCTION__,__LINE__);
+#endif
+     //added by jeff_xiehuan20170601 如果选择了cup,就一定走cup通道，如果选择了credit,则自动判断收单行
+	if(ChkAnyIndirectCupAcq() && ChkIfCUP() && ((glProcInfo.stTranLog.ucTranType  == SALE ||glProcInfo.stTranLog.ucTranType  == AUTH ||
+		glProcInfo.stTranLog.ucTranType  == PREAUTH) && !(glProcInfo.stTranLog.uiEntryMode & MODE_CHIP_INPUT)))
+    {
+        uchar ucIndex;
+	
+        iRet= AccountSelection();
+        ScrCls();
+        DispTransName();
+        if(iRet == 0)
+        {
+            //do nothing
+			for(ucIndex=0; ucIndex<glSysParam.ucAcqNum; ucIndex++)
+			{
+				SetCurAcq(ucIndex);
+				if(!ChkCurAcqName("CUP", FALSE))
+				{
+					break;
+				}
+			}
+			
+        }
+        else if(iRet == 1)
+        {
+			for(ucIndex=0; ucIndex<glSysParam.ucAcqNum; ucIndex++)
+			{
+				SetCurAcq(ucIndex);
+				if(ChkCurAcqName("CUP", FALSE))
+				{
+					break;
+				}
+			}
+		}
+        else
+        {
+            return ERR_USERCANCEL;
+        }
+		
+	}
+	if((ChkIfCupChb() || ChkIfChb()) && ChkAnyIndirectCupAcq())  //重新选择发卡行
+	{
+		uchar ucIndex;
+		uchar sPanHeader[5];
 
-    CheckCapture();
-
+		PubAsc2Bcd(glProcInfo.stTranLog.szPan, 10, sPanHeader);
+		if((memcmp("\x40\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x49\x99\x99\x99\x99", sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("VISA","visa");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else if((memcmp("\x50\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x59\x99\x99\x99\x99",sPanHeader, 5)>=0) || ChkIfMC(glProcInfo.stTranLog.szPan))
+		{
+			ucIndex = CheckIssueForIndirect("MASTERCARD","MC");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+    /**
+		else if((memcmp("\x60\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x99\x99\x99\x99\x99",sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("CUP","cup");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+	**/
+		else if((memcmp("\x35\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x35\x99\x99\x99\x99",sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("JCB","jcb");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else if((memcmp("\x36\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x36\x99\x99\x99\x99",sPanHeader, 5)>=0)  || 
+			(memcmp("\x38\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x39\x99\x99\x99\x99",sPanHeader, 5)>=0) ||
+			 (memcmp("\x30\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x30\x59\x99\x99\x99",sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("diners","DINERS");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else if((memcmp("\x34\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x34\x99\x99\x99\x99",sPanHeader, 5)>=0) ||
+			(memcmp("\x37\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x37\x99\x99\x99\x99",sPanHeader, 5)>=0) )
+		{
+			ucIndex = CheckIssueForIndirect("AMEX","AE");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else 
+		{
+             //默认是之前卡表匹配的发卡行
+		}
+	}
+    
+#ifdef APP_DEBUG_RICHARD
+	PubDebugTx("glCurAcq.szName=%s: glCurIssuer.szName=%s"             \
+		 "fun:%s,LineNo:%d,",glCurAcq.szName,glCurIssuer.szName,__FUNCTION__,__LINE__);
+#endif
     if( glProcInfo.stTranLog.ucTranType==INSTALMENT )
     {
         if( glProcInfo.bIsFallBack || glEdcMsgPtr->MsgType==ICCARD_MSG )
@@ -1024,6 +1158,7 @@ int ValidCard(void)
     }
 
     GetCardHolderName(glProcInfo.stTranLog.szHolderName);
+
     iRet = ConfirmPanInfo();
     if( iRet!=0 )
     {
@@ -1036,7 +1171,7 @@ int ValidCard(void)
     {
         return iRet;
     }
-
+	
     return 0;
 }
 
@@ -1201,6 +1336,7 @@ int MatchCardTable(uchar *pszPAN, uchar ucTranType, uchar ucMode)
             continue;
         }
         FindIssuer(glSysParam.stCardTable[ucCnt].ucIssuerKey);
+	
         FindAcq(glSysParam.stCardTable[ucCnt].ucAcqKey);
         if( glSysCtrl.sAcqStatus[glCurAcq.ucIndex]!=S_USE  &&
             glSysCtrl.sAcqStatus[glCurAcq.ucIndex]!=S_PENDING )// Abnormal acquirer status
@@ -3011,6 +3147,83 @@ int VerifyManualPan(void)
 #ifdef _S60_
     ClssClose(); //2014-5-16 enhance
 #endif
+	if((ChkIfCupChb() || ChkIfChb()) && ChkAnyIndirectCupAcq())  //重新选择发卡行
+	{
+		uchar ucIndex;
+		uchar sPanHeader[5];
+
+		PubAsc2Bcd(glProcInfo.stTranLog.szPan, 10, sPanHeader);
+		if((memcmp("\x40\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x49\x99\x99\x99\x99", sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("VISA","visa");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else if((memcmp("\x50\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x59\x99\x99\x99\x99",sPanHeader, 5)>=0) || ChkIfMC(glProcInfo.stTranLog.szPan))
+		{
+			ucIndex = CheckIssueForIndirect("MASTERCARD","MC");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		/***
+		else if((memcmp("\x60\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x99\x99\x99\x99\x99",sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("CUP","cup");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		***/
+		else if((memcmp("\x35\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x35\x99\x99\x99\x99",sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("JCB","jcb");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else if((memcmp("\x36\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x36\x99\x99\x99\x99",sPanHeader, 5)>=0)  || 
+			(memcmp("\x38\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x39\x99\x99\x99\x99",sPanHeader, 5)>=0) ||
+			 (memcmp("\x30\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x30\x59\x99\x99\x99",sPanHeader, 5)>=0))
+		{
+			ucIndex = CheckIssueForIndirect("diners","DINERS");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else if((memcmp("\x34\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x34\x99\x99\x99\x99",sPanHeader, 5)>=0) ||
+			(memcmp("\x37\x00\x00\x00\x00",sPanHeader, 5)<=0  &&
+			 memcmp("\x37\x99\x99\x99\x99",sPanHeader, 5)>=0) )
+		{
+			ucIndex = CheckIssueForIndirect("AMEX","AE");
+			if(ucIndex <= MAX_ISSUER)
+			{
+				SetCurIssuer(ucIndex);
+			}
+		}
+		else 
+		{
+             //默认是之前卡表匹配的发卡行
+		}
+	}
+#ifdef APP_DEBUG_RICHARD
+	PubDebugTx("glCurAcq.szName=%s: glCurIssuer.szName=%s"             \
+		 "fun:%s,LineNo:%d,",glCurAcq.szName,glCurIssuer.szName,__FUNCTION__,__LINE__);
+#endif
     iRet = ConfirmPanInfo();
     if( iRet!=0 )
     {
@@ -3022,7 +3235,7 @@ int VerifyManualPan(void)
     {
         return iRet;
     }
-
+	
     return 0;
 }
 
@@ -3175,10 +3388,21 @@ int GetPIN(uchar ucFlag)
     }
 #endif
 #else
-    SxxWriteKey(0, "1234567887654321", 16, DEF_PIN_KEY_ID, PED_TPK, NULL);
+	if(ChkIfCupChb() || ChkIfChb() || ChkIfCupDsb() || ChkIfDsb())
+	{
+
+	}
+	else
+	{
+		SxxWriteKey(0, "1234567887654321", 16, DEF_PIN_KEY_ID, PED_TPK, NULL);
+	}
     // 非EMV PIN的模式下，如果是chip则直接返回，不是chip则检查ISSUER
     // in non-EMV-PIN mode, if it is chip transaction then return directly
-    if( !(ucFlag & GETPIN_EMV) )
+	//fixed by jeff_xiehuan20170627,for support indirect project to input pin in situation of manual and swipe card
+	if( !(ucFlag & GETPIN_EMV) && 
+		!(ChkAnyIndirectCupAcq() && strstr(glCurIssuer.szName,"CUP") && 
+		(glProcInfo.stTranLog.uiEntryMode == MODE_MANUAL_INPUT || glProcInfo.stTranLog.uiEntryMode == MODE_SWIPE_INPUT ||
+		glProcInfo.stTranLog.uiEntryMode == MODE_FALLBACK_SWIPE || glProcInfo.stTranLog.uiEntryMode == MODE_FALLBACK_MANUAL)))
     {
         //2013-10-10  should disable this PIN ENTRY even protims set this bit,because the server does not vertify online pin
 
@@ -3198,7 +3422,20 @@ int GetPIN(uchar ucFlag)
 #endif
 
     //ucPinKeyID = DEF_PIN_KEY_ID;    //!!!! : 预留扩展：ACQUIRER可定义自己使用的ID
-    ucPinKeyID = DEF_PIN_KEY_ID;   //modified by richard 20161115, use the downloaded TPK 
+	if(ChkIfCupChb() || ChkIfChb() || ChkIfCupDsb() || ChkIfDsb())
+	{
+		ucPinKeyID = CUP_TPK_ID;
+#ifdef APP_DEBUG_RICHARD 
+	PubDebugTx("Use true TPK,func:%s,LineNo:%d",__FUNCTION__, __LINE__);
+#endif
+	}
+	else
+	{
+		ucPinKeyID = DEF_PIN_KEY_ID;   //modified by richard 20161115, use the downloaded TPK
+#ifdef APP_DEBUG_RICHARD 
+	PubDebugTx("Use Test TPK,func:%s,LineNo:%d",__FUNCTION__, __LINE__);
+#endif
+	}
 
     iRet = ExtractPAN(glProcInfo.stTranLog.szPan, szPAN);
     if( iRet!=0 )
@@ -3251,6 +3488,16 @@ int GetPIN(uchar ucFlag)
     {
 
         iRet = PedGetPinBlock(ucPinKeyID, "0,4,5,6,7,8", szPAN, glProcInfo.sPinBlock, 0, USER_OPER_TIMEOUT*1000);
+#ifdef APP_DEBUG_RICHARD 
+	PubDebugTx("FILE_%s,func:%s,LineNo:%d,GetPinBlock,iRet=%d,pinBlock=%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",
+		__FILE__,__FUNCTION__, __LINE__,iRet,glProcInfo.sPinBlock[0],glProcInfo.sPinBlock[1],glProcInfo.sPinBlock[2],
+		glProcInfo.sPinBlock[3],glProcInfo.sPinBlock[4],glProcInfo.sPinBlock[5],glProcInfo.sPinBlock[6],glProcInfo.sPinBlock[7]);
+#endif
+		if(ChkAnyIndirectCupAcq() && strstr(glCurIssuer.szName,"CUP"))//added by jeff_xiehuan20170627
+		{
+			PubLong2Char((ulong)LEN_PIN_DATA, 2, glSendPack.sPINData);
+			memcpy(&glSendPack.sPINData[2], glProcInfo.sPinBlock, LEN_PIN_DATA);
+		}
         if( iRet==0 )
         {
             glProcInfo.stTranLog.uiEntryMode |= MODE_PIN_INPUT;
@@ -5045,5 +5292,34 @@ void DispAmountASCII(uchar ucLine, uchar *pszAmount)
     //ucFont = strlen((char *)szOutAmt)>16 ? ASCII : CFONT;
     ScrPrint(0, ucLine, ASCII, "%*.21s", 16, szOutAmt);
 }
+
+//for select Acp for swipe card
+int AccountSelection(void)
+{
+    int      iMenuNo;
+
+    static MenuItem stMenu[] =
+    {
+        {TRUE, _T_NOOP("CREDIT"), NULL},
+        {TRUE, _T_NOOP("UNIONPAY"), NULL},//Jason 2015.01.27 15:14
+        {TRUE, "", NULL},
+    };
+    static  uchar   szPrompt[]       = _T_NOOP("SELECT HOST");
+
+    iMenuNo = PubGetMenu((uchar *)_T(szPrompt), stMenu, MENU_AUTOSNO|MENU_NOSPEC, USER_OPER_TIMEOUT);
+    switch( iMenuNo )
+    {
+        case 0:
+            return 0;
+
+        case 1:
+            return 1;
+
+        default:
+            break;
+    }
+    return ERR_NO_DISP;
+}
+
 // end of file
 

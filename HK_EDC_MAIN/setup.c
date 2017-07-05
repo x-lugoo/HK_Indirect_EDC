@@ -2982,7 +2982,7 @@ int ModifyOptList(uchar *psOption, uchar ucMode, uchar ucPermission)
 	static OPTION_INFO stEdcOptList[] =
 	{
 		{"AUTH PAN MASKING",	EDC_AUTH_PAN_MASKING,	FALSE,	PM_LOW},
-//		{"SELECT ACQ_CARD",		EDC_SELECT_ACQ_FOR_CARD,FALSE,	PM_LOW},
+		//{"SELECT ACQ_CARD",		EDC_SELECT_ACQ_FOR_CARD,FALSE,	PM_LOW},
 		{"ENABLE ECR",			EDC_ECR_ENABLE,			FALSE,	PM_LOW},
 		{"FREE PRINT",			EDC_FREE_PRINT,			FALSE,  PM_LOW},
 		
